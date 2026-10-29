@@ -348,8 +348,6 @@ function progress(percent) {
     `${Math.max(0, Math.min(100, percent))}%`;
 }
 
-// Image upload and preview.
-// Wait until the selected image successfully decodes before enabling processing.
 fileInput.addEventListener('change', (event) => {
   const file = event.target.files && event.target.files[0];
 
@@ -483,7 +481,6 @@ runBtn.addEventListener('click', async () => {
     img.src = sourceURL;
     await img.decode();
 
-    // Convert the predicted mask to an 8-bit grayscale image.
     const maskTensor = output.output_image[0].sigmoid().mul(255).to('uint8');
     const maskRaw = await RawImage.fromTensor(maskTensor);
 
@@ -503,7 +500,6 @@ runBtn.addEventListener('click', async () => {
 
     for (let p = 0, i = 0; p < maskRaw.width * maskRaw.height; p++, i += 4) {
       const v = maskRaw.data[p * channels];
-
       maskPixels.data[i] = v;
       maskPixels.data[i + 1] = v;
       maskPixels.data[i + 2] = v;
@@ -512,7 +508,6 @@ runBtn.addEventListener('click', async () => {
 
     maskCtx.putImageData(maskPixels, 0, 0);
 
-    // Resize the mask to the original photo dimensions.
     const alphaCanvas = document.createElement('canvas');
     alphaCanvas.width = img.naturalWidth;
     alphaCanvas.height = img.naturalHeight;
@@ -523,15 +518,8 @@ runBtn.addEventListener('click', async () => {
       throw new Error('Could not create the alpha canvas.');
     }
 
-    alphaCtx.drawImage(
-      maskCanvas,
-      0,
-      0,
-      alphaCanvas.width,
-      alphaCanvas.height
-    );
+    alphaCtx.drawImage(maskCanvas, 0, 0, alphaCanvas.width, alphaCanvas.height);
 
-    // Apply the mask as the output image's alpha channel.
     const outCanvas = document.createElement('canvas');
     outCanvas.width = img.naturalWidth;
     outCanvas.height = img.naturalHeight;
@@ -564,7 +552,12 @@ runBtn.addEventListener('click', async () => {
     );
 
   } catch (err) {
-    console.error(err);
+    // Diagnostic logging: preserve the full exception for debugging.
+    console.error('BackgroundEngine full error:', err);
+    console.error('Error name:', err?.name);
+    console.error('Error message:', err?.message);
+    console.error('Error stack:', err?.stack);
+
     progress(0);
 
     if (err.message !== 'WebGPU unavailable') {
