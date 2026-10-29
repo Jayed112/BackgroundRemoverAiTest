@@ -338,6 +338,24 @@ let busy = false;
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
+const originalFetch = window.fetch.bind(window);
+
+window.fetch = async (...args) => {
+  const requestURL = String(args[0]?.url || args[0]);
+
+  try {
+    return await originalFetch(...args);
+  } catch (error) {
+    console.error("FETCH FAILED:", requestURL, error);
+
+    status(`Network request failed: ${requestURL}`, true);
+
+    throw error;
+  }
+};
+
+  
+
 function status(message, error = false) {
   statusBox.textContent = message;
   statusBox.classList.toggle('error', error);
